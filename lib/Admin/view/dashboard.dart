@@ -148,6 +148,7 @@ class AdminDashboardState extends State<AdminDashboard> {
             title: const Text("Admin User"),
             trailing: IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
+              //go back to login page by signout firebase Auth
               onPressed: () {},
             ),
           ),
