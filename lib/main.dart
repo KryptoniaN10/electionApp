@@ -1,7 +1,11 @@
-import 'package:electionapp/Admin/view/dashboard.dart';
+import 'package:flutter/material.dart';
 import 'package:electionapp/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+
+import 'package:electionapp/Admin/view/dashboard.dart';
+import 'package:electionapp/election_officer/views/screens/officer_login_screen.dart';
+//import 'package:flutter/material.dart';
+//port 'election_officer/views/screens/student_auth_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +43,8 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: AdminDashboard(),
+      home: const OfficerLoginScreen(),
+
     );
   }
 }
