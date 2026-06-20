@@ -1,3 +1,4 @@
+import 'package:electionapp/election_officer/views/screens/officer_login_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -149,7 +150,10 @@ class AdminDashboardState extends State<AdminDashboard> {
             trailing: IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               //go back to login page by signout firebase Auth
-              onPressed: () {},
+              onPressed: () {
+                //TO-DO:do the firebase auth signout
+                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => OfficerLoginScreen(),), ((route) => false));
+              },
             ),
           ),
           const SafeArea(top: false, child: SizedBox.shrink()),

@@ -1,3 +1,4 @@
+import 'package:electionapp/Admin/view/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 
@@ -9,6 +10,8 @@ class OfficerLoginScreen extends StatefulWidget {
 }
 
 class _OfficerLoginScreenState extends State<OfficerLoginScreen> {
+  TextEditingController username=TextEditingController();
+  TextEditingController password=TextEditingController();
   bool hidePassword = true;
   @override
   Widget build(BuildContext context) {
@@ -57,6 +60,7 @@ class _OfficerLoginScreenState extends State<OfficerLoginScreen> {
                 const SizedBox(height: 40),
 
                 TextField(
+                  controller: username,
                   decoration: InputDecoration(
                     labelText: "Teacher / Officer ID",
 
@@ -73,7 +77,7 @@ class _OfficerLoginScreenState extends State<OfficerLoginScreen> {
 
                 TextField(
                   obscureText: hidePassword,
-
+                  controller: password,
                   decoration: InputDecoration(
                     labelText: "Password",
 
@@ -106,13 +110,18 @@ class _OfficerLoginScreenState extends State<OfficerLoginScreen> {
 
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
+                      if(username.text=='admin' && password.text=='password'){
+                          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => AdminDashboard(),), (route) => false,);
+                      }
+                      else{
+                        Navigator.pushAndRemoveUntil(
                         context,
 
                         MaterialPageRoute(
                           builder: (context) => const DashboardScreen(),
-                        ),
+                        ),(route) => false,
                       );
+                    }
                     },
 
                     style: ElevatedButton.styleFrom(
@@ -146,6 +155,7 @@ class _OfficerLoginScreenState extends State<OfficerLoginScreen> {
 
                   child: OutlinedButton(
                     onPressed: () {
+                      //TO-DO to navigate to machine authenticator receiver page
                       print("Open Voter Machine");
                     },
 
