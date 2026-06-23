@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "89003103603",
+    "project_id": "eduvote-2d1a6",
+    "storage_bucket": "eduvote-2d1a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89003103603:android:d2fe9b6f39212a9cea2106",
+        "android_client_info": {
+          "package_name": "com.gjinfotech.eduvote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRf2-vMGwV35ygVjBcRKw57p12UpRkzNs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
