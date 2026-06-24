@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import 'firebase_options.dart';
+import 'election_officer/views/screens/officer_login_screen.dart';
 
 import 'machine_provider/audit_logs_provider.dart';
 import 'machine_provider/auth_provider.dart';
@@ -11,7 +13,6 @@ import 'machine_provider/election_init_provider.dart';
 import 'machine_provider/machine_settings_provider.dart';
 
 import 'machine_view/screens/audit_logs_screen.dart';
-import 'machine_view/screens/authenticator_screen.dart';
 import 'machine_view/screens/ballot_screen.dart';
 import 'machine_view/screens/dashboard_screen.dart';
 import 'machine_view/screens/election_init_screen.dart';
@@ -20,9 +21,9 @@ import 'machine_view/widgets/machine_ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -44,22 +45,22 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: MachineTheme.materialTheme(),
         routes: {
-          '/dashboard': (context) => const DashboardScreen(),
+          '/dashboard': (context) {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+
+            if (!auth.isAuthenticated) {
+              return const OfficerLoginScreen();
+            }
+
+            return const DashboardScreen();
+          },
           '/election-init': (context) => const ElectionInitScreen(),
           '/ballot': (context) => const BallotScreen(),
           '/settings': (context) => const MachineSettingsScreen(),
           '/audit-logs': (context) => const AuditLogsScreen(),
+          '/officer-login': (context) => const OfficerLoginScreen(),
         },
-        home: Builder(
-          builder: (context) {
-            return AuthenticatorScreen(
-              machineId: 1,
-              onSuccess: () {
-                Navigator.pushReplacementNamed(context, '/dashboard');
-              },
-            );
-          },
-        ),
+        home: const OfficerLoginScreen(),
       ),
     );
   }
