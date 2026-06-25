@@ -194,7 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
-                              Icons.qr_code_scanner_rounded,
+                              Icons.numbers_outlined,
                               color: Colors.deepPurple,
                               size: 28,
                             ),
@@ -283,39 +283,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: Colors.black87,
                             ),
                           ),
+                          
                           const SizedBox(height: 12),
-                          TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: "Admission Number",
-                              hintStyle: TextStyle(color: Colors.grey.shade500),
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                color: Colors.grey.shade500,
-                                size: 20,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.deepPurple,
-                                  width: 2,
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: InputDecoration(
+                                    hintText: "Admission Number",
+                                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                                    prefixIcon: Icon(
+                                      Icons.search_rounded,
+                                      color: Colors.grey.shade500,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Colors.deepPurple,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+
+                              const SizedBox(width: 8),
+
+                              SizedBox(
+                                width: 52,
+                                height: 52,
+                                child: IconButton(
+                                  onPressed: () {
+                                    // TODO: Open QR Scanner
+                                  },
+                                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.deepPurple.withOpacity(0.1),
+                                    foregroundColor: Colors.deepPurple,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           SizedBox(

@@ -75,16 +75,22 @@ class DashboardScreen extends StatelessWidget {
                             width: 320,
                             child: Column(
                               children: <Widget>[
-                                InfoTile(
-                                  label: 'Machine Code',
-                                  value: machineState.machineCode,
-                                  icon: Icons.memory_rounded,
+                                SizedBox(
+                                  width: 300,
+                                  child: InfoTile(
+                                    label: 'Machine Code',
+                                    value: machineState.machineCode,
+                                    icon: Icons.memory_rounded,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
-                                InfoTile(
-                                  label: 'Last Heartbeat',
-                                  value: formatDateTime(machineState.lastHeartbeat),
-                                  icon: Icons.sync_rounded,
+                                SizedBox(
+                                  width: 300,
+                                  child: InfoTile(
+                                    label: 'Last Heartbeat',
+                                    value: formatDateTime(machineState.lastHeartbeat),
+                                    icon: Icons.sync_rounded,
+                                  ),
                                 ),
                               ],
                             ),

@@ -39,7 +39,7 @@ class BallotProvider extends ChangeNotifier {
   // Timer for gradual dimming while voting
   Timer? _dimTimer;
   static const int _dimDurationSeconds = 30; // Dims over 60 seconds
-  static const double _minBrightness = 0.15;
+  static const double _minBrightness = 0.30;
 
   Map<int, List<Candidate>> get electionCandidates => _electionCandidates;
   Map<int, int> get selectedCandidates => _selectedCandidates;

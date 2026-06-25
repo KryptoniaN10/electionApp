@@ -253,7 +253,6 @@ class AdminDashboardState extends State<AdminDashboard> {
             int crossAxisCount = width < 600 ? 2 : (width < 1000 ? 4 : 8);
             double spacing = 16;
             double cardWidth = (width - (crossAxisCount - 1) * spacing) / crossAxisCount;
-            cardWidth=cardWidth*1.2;
             double aspectRatio=1.1;
             double cardHeight = cardWidth*aspectRatio;
             return Wrap(
@@ -500,81 +499,152 @@ class AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _showAddCandidateDialog(BuildContext context) {
-    // Local dialog state for the isVerified switch
-    bool isVerified = false;
+  // Local state
+  bool isVerified = false;
+  final TextEditingController positionController = TextEditingController();
+  final TextEditingController studentId = TextEditingController();
+  final TextEditingController bioStudent =TextEditingController();
+  String? selectedPosition;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("Add New Candidate"),
-              // Fields below map to elections/{electionId}/candidates/{candidateId}
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: "Student ID",
-                        helperText: "Links this candidate to an existing student (userId)",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.badge_outlined),
-                      ),
+  // Example: Available positions (you can load these from provider later)
+  final List<String> availablePositions = [
+    "President",
+    "Vice President",
+    "Secretary",
+    "Treasurer",
+    "Class Representative",
+    "Sports Secretary",
+    "Cultural Secretary",
+    "Technical Secretary",
+  ];
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text("Add New Candidate"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Student ID
+                  TextField(
+                    controller: studentId,
+                    decoration: InputDecoration(
+                      labelText: "Student ID",
+                      helperText: "Links this candidate to an existing student",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      prefixIcon: const Icon(Icons.badge_outlined),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: "Position",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.how_to_vote_outlined),
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Smart Position Field
+                  Autocomplete<String>(
+                    initialValue: TextEditingValue(text: selectedPosition ?? ''),
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return availablePositions;
+                      }
+                      return availablePositions.where((String option) {
+                        return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                      });
+                    },
+                    onSelected: (String selection) {
+                      setState(() {
+                        selectedPosition = selection;
+                        positionController.text = selection;
+                      });
+                    },
+                    fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                      // Keep reference to controller
+                      positionController.text = textEditingController.text;
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          labelText: "Position",
+                          hintText: "Type or select position...",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.how_to_vote_outlined),
+                          suffixIcon: const Icon(Icons.arrow_drop_down),
+                        ),
+                        onSubmitted: (value) {
+                          // Allow custom position
+                          if (value.isNotEmpty && !availablePositions.contains(value)) {
+                            setState(() {
+                              availablePositions.add(value); // Add new position to suggestions
+                              selectedPosition = value;
+                            });
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bio
+                  TextField(
+                    maxLines: 3,
+                    controller: bioStudent,
+                    decoration: InputDecoration(
+                      labelText: "Bio",
+                      alignLabelWithHint: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      prefixIcon: const Icon(Icons.notes),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: "Bio",
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.notes),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text("Verified"),
-                      subtitle: const Text("Mark candidate as verified/eligible"),
-                      value: isVerified,
-                      activeThumbColor: const Color(0xFF6B46C1),
-                      onChanged: (value) => setState(() => isVerified = value),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Verified Switch
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text("Verified"),
+                    subtitle: const Text("Mark candidate as verified/eligible"),
+                    value: isVerified,
+                    activeThumbColor: const Color(0xFF6B46C1),
+                    onChanged: (value) => setState(() => isVerified = value),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO: Handle adding candidate logic
-                    // Write to elections/{electionId}/candidates: userId, position, bio, isVerified
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6B46C1)),
-                  child: const Text("OK", style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final position = positionController.text.trim();
+                  if (studentId.text.isEmpty){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('StudentId is required')),
+                    );
+                  }
+                  if (position.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Position is required')),
+                    );
+                    return;
+                  }
+                  
+                  // TODO: Save candidate with position
+                  // Example: position, studentId, bio, isVerified
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6B46C1)),
+                child: const Text("Add Candidate", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
   void _showAssignOfficerDialog(BuildContext context) {
     // Local dialog state for the role dropdown and isActive switch
