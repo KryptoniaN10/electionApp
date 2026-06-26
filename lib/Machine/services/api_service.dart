@@ -6,53 +6,51 @@ import '../machine_models/auth/officer_auth_model.dart';
 class ApiService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Authenticates an officer by verifying the 6-digit OTP against the
-  /// machine document in Firestore:
-  ///   collection('system').doc('registry').collection('machines').doc(machineId)
+  /// Authenticates a machine by verifying the 6-digit OTP against the
+  /// officer's auth code doc in the sub-collection:
+  ///   system/registry/machines/{machineId}/auth_codes/{code}
   ///
-  /// Expected machine document fields:
-  ///   - auth_code            : String  (6-digit random code from officer dashboard)
-  ///   - auth_code_expires_at : Timestamp (code expiry time, 30s from generation)
-  ///   - officer_name         : String? (display name for the officer)
-  ///   - status               : String  (active, inactive, maintenance, voting)
+  /// Each officer generates their own independent code — no overwriting, no clashes.
   ///
   /// On success:
-  ///   - Consumes the used code (sets auth_code to null)
-  ///   - The officer dashboard's Firestore listener detects the null code
-  ///     and generates a fresh code immediately.
-  ///   - Updates last_heartbeat and machine_logged_status
+  ///   - Consumes the code (sets status to 'used')
+  ///   - The officer screen's listener detects the 'used' status
+  ///     and instantly generates a fresh code.
+  ///   - Updates machine heartbeat and logged status.
   Future<OfficerAuthResponse> authenticateOfficer(OfficerAuthRequest request) async {
     try {
-      final docRef = _firestore
+      final codeDocRef = _firestore
           .collection('system')
           .doc('registry')
           .collection('machines')
-          .doc(request.machineId.toString());
+          .doc(request.machineId.toString())
+          .collection('auth_codes')
+          .doc(request.code);
 
-      final docSnapshot = await docRef.get();
+      final codeSnapshot = await codeDocRef.get();
 
-      if (!docSnapshot.exists) {
+      if (!codeSnapshot.exists) {
         return OfficerAuthResponse(
           success: false,
-          message: 'Machine not found in registry.',
+          message: 'Invalid code. No active authentication session found.',
         );
       }
 
-      final data = docSnapshot.data()!;
-      final authCode = data['auth_code'] as String?;
-      final expiresAt = data['auth_code_expires_at'] != null
-          ? (data['auth_code_expires_at'] as Timestamp).toDate()
+      final data = codeSnapshot.data()!;
+      final status = data['status'] as String?;
+      final expiresAt = data['expires_at'] != null
+          ? (data['expires_at'] as Timestamp).toDate()
           : null;
 
-      // No active code present (already consumed or never generated)
-      if (authCode == null || authCode.isEmpty) {
+      // Code already consumed by another machine or expired
+      if (status != 'active') {
         return OfficerAuthResponse(
           success: false,
-          message: 'No active authentication code. Wait for the officer to generate a new code.',
+          message: 'Code has already been used. Ask the officer for a new code.',
         );
       }
 
-      // Check expiration
+      // Check expiration (30 seconds from generation)
       if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
         return OfficerAuthResponse(
           success: false,
@@ -60,30 +58,31 @@ class ApiService {
         );
       }
 
-      // Verify code match
-      if (authCode == request.code) {
-        // Consume the code — officer screen will detect auth_code == null
-        // and regenerate a new code immediately via its Firestore listener.
-        await docRef.update({
-          'auth_code': null,
-          'auth_code_expires_at': null,
-          'last_heartbeat': FieldValue.serverTimestamp(),
-          'status': 'active',
-          'machine_logged_status': 'logged',
-        });
+      // Valid code — consume it and update machine status
+      await codeDocRef.update({
+        'status': 'used',
+        'used_at': FieldValue.serverTimestamp(),
+      });
 
-        return OfficerAuthResponse(
-          success: true,
-          sessionToken: 'fb_session_${docSnapshot.id}_${DateTime.now().millisecondsSinceEpoch}',
-          officerName: data['officer_name'] as String? ?? 'Officer Verified',
-          message: 'Authentication successful.',
-        );
-      }
+      // Update machine doc for heartbeat and logged status
+      final machineDocRef = _firestore
+          .collection('system')
+          .doc('registry')
+          .collection('machines')
+          .doc(request.machineId.toString());
 
-      // Wrong code
+      await machineDocRef.set({
+        'machine_id': request.machineId,
+        'last_heartbeat': FieldValue.serverTimestamp(),
+        'status': 'active',
+        'machine_logged_status': 'logged',
+      }, SetOptions(merge: true));
+
       return OfficerAuthResponse(
-        success: false,
-        message: 'Invalid authorization code.',
+        success: true,
+        sessionToken: 'fb_session_${request.machineId}_${request.code}_${DateTime.now().millisecondsSinceEpoch}',
+        officerName: data['officer_name'] as String? ?? 'Officer Verified',
+        message: 'Authentication successful.',
       );
     } catch (e) {
       return OfficerAuthResponse(
@@ -94,8 +93,6 @@ class ApiService {
   }
 
   /// Generates a random 6-digit numeric code.
-  /// Note: This is kept here for reference, but the officer dashboard
-  /// (AuthenticationCodeScreen) is now the primary source of code generation.
   String generateRandomCode() {
     final random = Random();
     return (100000 + random.nextInt(900000)).toString();

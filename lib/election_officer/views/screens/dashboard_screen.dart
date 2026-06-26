@@ -1,4 +1,5 @@
 // dashboard_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'authentication_code_screen.dart';
 
@@ -13,15 +14,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late String authCode;
   final TextEditingController _searchController = TextEditingController();
 
+  // Machine selection
+  List<Map<String, dynamic>> _machines = [];
+  bool _machinesLoading = true;
+  String? _selectedMachineId;
+
   @override
   void initState() {
     super.initState();
     _generateNewCode();
+    _loadMachines();
   }
 
   void _generateNewCode() {
     final now = DateTime.now().millisecondsSinceEpoch;
     authCode = (now % 1000000).toString().padLeft(6, '0');
+  }
+
+  /// Queries all machines from Firestore so the officer can pick one.
+  Future<void> _loadMachines() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('system')
+          .doc('registry')
+          .collection('machines')
+          .get();
+
+      final machines = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['machine_name'] as String? ?? 'Machine ${doc.id}',
+          'location': data['location'] as String? ?? 'Unknown',
+          'status': data['status'] as String? ?? 'unknown',
+        };
+      }).toList();
+
+      setState(() {
+        _machines = machines;
+        _machinesLoading = false;
+        if (machines.isNotEmpty) {
+          _selectedMachineId = machines.first['id'] as String;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _machinesLoading = false;
+      });
+      // Fallback: show default machine 1 if Firestore fails
+      _machines = [
+        {'id': '1', 'name': 'Machine 1', 'location': 'Default', 'status': 'active'},
+      ];
+      _selectedMachineId = '1';
+    }
   }
 
   @override
@@ -194,7 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
-                              Icons.numbers_outlined,
+                              Icons.qr_code_scanner_rounded,
                               color: Colors.deepPurple,
                               size: 28,
                             ),
@@ -223,29 +268,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           SizedBox(
-                            height: 40,
+                            width: double.infinity,
+                            height: 44,
                             child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AuthenticationCodeScreen(
-                                      initialAuthCode: authCode,
-                                      machineId: 1,
-                                    ),
-                                  ),
-                                );
-                              },
+                              onPressed: _selectedMachineId == null
+                                  ? null
+                                  : () {
+                                      final machineId = int.tryParse(_selectedMachineId!) ?? 1;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AuthenticationCodeScreen(
+                                            initialAuthCode: authCode,
+                                            machineId: machineId,
+                                            officerId: 'officer_1', // TODO: pass real officer ID from auth
+                                            officerName: 'Election Officer', // TODO: pass real name
+                                          ),
+                                        ),
+                                      );
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.deepPurple,
+                                disabledBackgroundColor: Colors.deepPurple.shade100,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
                               ),
                               child: const Text(
-                                "Generate",
+                                "Generate Code",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
