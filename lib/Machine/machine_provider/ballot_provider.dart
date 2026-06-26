@@ -15,7 +15,7 @@ class BallotProvider extends ChangeNotifier {
     loadBallot();
   }
 
-  final LocalBackupService _backup = LocalBackupService();
+  final LocalBackupService _backup = LocalBackupService.getInstance();
 
   // Candidates grouped by election ID
   Map<int, List<Candidate>> _electionCandidates = <int, List<Candidate>>{};
@@ -65,7 +65,8 @@ class BallotProvider extends ChangeNotifier {
   bool get isLastStep => _currentStepIndex >= _activeElectionIds.length - 1;
 
   /// True if current step is confirmed
-  bool get isCurrentStepConfirmed => _confirmedSteps.contains(_currentStepIndex);
+  bool get isCurrentStepConfirmed =>
+      _confirmedSteps.contains(_currentStepIndex);
 
   String? _officerPasskey;
   String? get officerPasskey => _officerPasskey;
@@ -136,7 +137,8 @@ class BallotProvider extends ChangeNotifier {
   /// Starts a timer that gradually dims brightness over 60 seconds.
   void _startDimmingTimer() {
     _stopDimmingTimer(); // Safety
-    final tickMs = (_dimDurationSeconds * 1000) ~/ 30; // 30 ticks over the duration
+    final tickMs =
+        (_dimDurationSeconds * 1000) ~/ 30; // 30 ticks over the duration
     var tick = 0;
 
     _dimTimer = Timer.periodic(Duration(milliseconds: tickMs), (timer) async {
@@ -146,7 +148,9 @@ class BallotProvider extends ChangeNotifier {
       _brightnessLevel = 1.0 - (progress * (1.0 - _minBrightness));
 
       try {
-        await ScreenBrightness.instance.setApplicationScreenBrightness(_brightnessLevel);
+        await ScreenBrightness.instance.setApplicationScreenBrightness(
+          _brightnessLevel,
+        );
       } catch (e) {
         if (kDebugMode) debugPrint('Brightness dim failed: $e');
       }
@@ -215,7 +219,8 @@ class BallotProvider extends ChangeNotifier {
     await _backup.saveAuditLog(
       entryId: DateTime.now().millisecondsSinceEpoch,
       action: 'VOTE_CAST',
-      details: 'Voter cast ${_selectedCandidates.length} vote(s) via secure terminal.',
+      details:
+          'Voter cast ${_selectedCandidates.length} vote(s) via secure terminal.',
       electionId: _activeElectionIds.firstOrNull,
       severity: AuditSeverity.info,
     );
@@ -223,7 +228,8 @@ class BallotProvider extends ChangeNotifier {
     // TODO(firebase): submit all encrypted ballots and write receipts to Firestore.
     final response = VoteResponse(
       success: true,
-      message: 'All votes recorded successfully for ${_selectedCandidates.length} position(s).',
+      message:
+          'All votes recorded successfully for ${_selectedCandidates.length} position(s).',
       voteId: 8001,
       receipt: 'RCPT-8001',
     );
@@ -247,7 +253,8 @@ class BallotProvider extends ChangeNotifier {
   int? selectedCandidateFor(int electionId) => _selectedCandidates[electionId];
 
   /// Returns the list of candidates for a specific election.
-  List<Candidate> candidatesFor(int electionId) => _electionCandidates[electionId] ?? <Candidate>[];
+  List<Candidate> candidatesFor(int electionId) =>
+      _electionCandidates[electionId] ?? <Candidate>[];
 
   /// Restores screen brightness to maximum (1.0) when session ends.
   Future<void> _restoreBrightness() async {

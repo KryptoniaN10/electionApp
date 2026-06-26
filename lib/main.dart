@@ -19,11 +19,13 @@ import 'Machine/machine_view/screens/dashboard_screen.dart';
 import 'Machine/machine_view/screens/election_init_screen.dart';
 import 'Machine/machine_view/screens/machine_settings_screen.dart';
 import 'Machine/machine_view/widgets/machine_ui.dart';
+import 'Machine/services/local_backup_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await LocalBackupService.getInstance().init();
 
   runApp(const MyApp());
 }
