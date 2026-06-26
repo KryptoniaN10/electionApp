@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../machine_data/machine_fake_data.dart';
+// import '../../machine_provider/ballot_provider.dart';
 import '../../machine_provider/election_init_provider.dart';
 import '../widgets/machine_ui.dart';
 

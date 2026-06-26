@@ -1,11 +1,19 @@
 // authentication_code_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthenticationCodeScreen extends StatefulWidget {
   final String initialAuthCode;
+  final int machineId;
 
-  const AuthenticationCodeScreen({super.key, required this.initialAuthCode});
+  const AuthenticationCodeScreen({
+    super.key,
+    required this.initialAuthCode,
+    this.machineId = 1,
+  });
 
   @override
   State<AuthenticationCodeScreen> createState() =>
@@ -17,20 +25,57 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
   late String authCode;
   late Timer _timer;
   int _remainingSeconds = 30;
-  int _maxSeconds = 30;
+  final int _maxSeconds = 30;
   late AnimationController _animationController;
+
+  StreamSubscription<DocumentSnapshot>? _machineListener;
 
   @override
   void initState() {
     super.initState();
     authCode = widget.initialAuthCode;
+    _writeCodeToFirebase(authCode);
     _startTimer();
+    _listenToMachineDoc();
 
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 30),
     );
     _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _machineListener?.cancel();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  /// Listens to the machine document in Firestore.
+  /// When the machine consumes the code (auth_code becomes null),
+  /// immediately generate a new code.
+  void _listenToMachineDoc() {
+    final docRef = FirebaseFirestore.instance
+        .collection('system')
+        .doc('registry')
+        .collection('machines')
+        .doc(widget.machineId.toString());
+
+    _machineListener = docRef.snapshots().listen((snapshot) {
+      if (!snapshot.exists) return;
+      final data = snapshot.data();
+      if (data == null) return;
+
+      final currentCode = data['auth_code'] as String?;
+      // If the machine consumed the code, regenerate immediately
+      if (currentCode == null || currentCode.isEmpty) {
+        if (mounted) {
+          _generateNewCode();
+        }
+      }
+    });
   }
 
   void _startTimer() {
@@ -47,25 +92,51 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
   }
 
   void _generateNewCode() {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    authCode = (now % 1000000).toString().padLeft(6, '0');
+    final random = Random();
+    authCode = (100000 + random.nextInt(900000)).toString();
     _remainingSeconds = _maxSeconds;
     _animationController.reset();
     _animationController.forward();
 
-    // TODO: Store in Firebase
-    // FirebaseFirestore.instance.collection('auth_codes').add({
-    //   'code': authCode,
-    //   'timestamp': FieldValue.serverTimestamp(),
-    //   'isActive': true,
-    // });
+    _writeCodeToFirebase(authCode);
   }
 
-  @override
-  void dispose() {
-    _timer.cancel();
-    _animationController.dispose();
-    super.dispose();
+  /// Writes the current auth code to the machine document in Firestore.
+  /// Creates the document if it doesn't exist (merge: true).
+  Future<void> _writeCodeToFirebase(String code) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('system')
+          .doc('registry')
+          .collection('machines')
+          .doc(widget.machineId.toString());
+
+      final expiry = DateTime.now().add(const Duration(seconds: 30));
+
+      await docRef.set({
+        'machine_id': widget.machineId,
+        'machine_name': 'Machine ${widget.machineId}',
+        'auth_code': code,
+        'auth_code_expires_at': Timestamp.fromDate(expiry),
+        'status': 'active',
+        'machine_logged_status': 'pending',
+        'last_heartbeat': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to sync code: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -134,9 +205,9 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
                   ),
                   const SizedBox(height: 20),
 
-                  const Text(
-                    "Voting Machine",
-                    style: TextStyle(
+                  Text(
+                    "Machine ${widget.machineId}",
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -328,7 +399,7 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "Code refreshes automatically",
+                        "Code refreshes automatically every 30 seconds",
                         style: TextStyle(
                           color: Colors.grey.shade500,
                           fontSize: 13,

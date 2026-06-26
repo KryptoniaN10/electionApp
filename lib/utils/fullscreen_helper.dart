@@ -2,7 +2,7 @@
 // On mobile: SystemChrome.immersiveSticky (hides status bar + nav bar, auto-rehides on swipe).
 // On web:    dart:html fullscreen API (via conditional stub).
 
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class FullscreenHelper {
