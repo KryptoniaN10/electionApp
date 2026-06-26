@@ -1,4 +1,5 @@
 // dashboard_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'authentication_code_screen.dart';
 
@@ -13,15 +14,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late String authCode;
   final TextEditingController _searchController = TextEditingController();
 
+  // Machine selection
+  List<Map<String, dynamic>> _machines = [];
+  bool _machinesLoading = true;
+  String? _selectedMachineId;
+
   @override
   void initState() {
     super.initState();
     _generateNewCode();
+    _loadMachines();
   }
 
   void _generateNewCode() {
     final now = DateTime.now().millisecondsSinceEpoch;
     authCode = (now % 1000000).toString().padLeft(6, '0');
+  }
+
+  /// Queries all machines from Firestore so the officer can pick one.
+  Future<void> _loadMachines() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('system')
+          .doc('registry')
+          .collection('machines')
+          .get();
+
+      final machines = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['machine_name'] as String? ?? 'Machine ${doc.id}',
+          'location': data['location'] as String? ?? 'Unknown',
+          'status': data['status'] as String? ?? 'unknown',
+        };
+      }).toList();
+
+      setState(() {
+        _machines = machines;
+        _machinesLoading = false;
+        if (machines.isNotEmpty) {
+          _selectedMachineId = machines.first['id'] as String;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _machinesLoading = false;
+      });
+      // Fallback: show default machine 1 if Firestore fails
+      _machines = [
+        {'id': '1', 'name': 'Machine 1', 'location': 'Default', 'status': 'active'},
+      ];
+      _selectedMachineId = '1';
+    }
   }
 
   @override
@@ -185,67 +230,196 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.qr_code_scanner_rounded,
-                              color: Colors.deepPurple,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Machine Authentication",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                Text(
-                                  "Generate code for voting machines",
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 13,
-                                  ),
+                                child: Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  color: Colors.deepPurple,
+                                  size: 28,
                                 ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            height: 40,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AuthenticationCodeScreen(
-                                      initialAuthCode: authCode,
-                                      machineId: 1,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Machine Authentication",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
                                     ),
+                                    Text(
+                                      "Select a machine and generate a code",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Machine Selector Dropdown
+                          _machinesLoading
+                              ? Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade300),
                                   ),
-                                );
-                              },
+                                  child: const Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        "Loading machines...",
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _machines.isEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade50,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.orange.shade200),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.warning_amber_rounded,
+                                              color: Colors.orange.shade700, size: 18),
+                                          const SizedBox(width: 8),
+                                          const Expanded(
+                                            child: Text(
+                                              "No machines registered. Add machines to Firestore first.",
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.grey.shade300),
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          isExpanded: true,
+                                          value: _selectedMachineId,
+                                          icon: Icon(Icons.arrow_drop_down, color: Colors.deepPurple),
+                                          borderRadius: BorderRadius.circular(12),
+                                          items: _machines.map((machine) {
+                                            final id = machine['id'] as String;
+                                            final name = machine['name'] as String;
+                                            final location = machine['location'] as String;
+                                            final status = machine['status'] as String;
+                                            final isOnline = status == 'active' || status == 'voting';
+                                            return DropdownMenuItem<String>(
+                                              value: id,
+                                              child: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: BoxDecoration(
+                                                      color: isOnline ? Colors.green : Colors.grey,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                          name,
+                                                          style: const TextStyle(
+                                                            fontWeight: FontWeight.w600,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          "$location • ID: $id",
+                                                          style: TextStyle(
+                                                            color: Colors.grey.shade600,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _selectedMachineId = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: ElevatedButton(
+                              onPressed: _selectedMachineId == null
+                                  ? null
+                                  : () {
+                                      final machineId = int.tryParse(_selectedMachineId!) ?? 1;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AuthenticationCodeScreen(
+                                            initialAuthCode: authCode,
+                                            machineId: machineId,
+                                            officerId: 'officer_1', // TODO: pass real officer ID from auth
+                                            officerName: 'Election Officer', // TODO: pass real name
+                                          ),
+                                        ),
+                                      );
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.deepPurple,
+                                disabledBackgroundColor: Colors.deepPurple.shade100,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
                               ),
                               child: const Text(
-                                "Generate",
+                                "Generate Code",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,

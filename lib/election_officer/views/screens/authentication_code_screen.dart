@@ -8,11 +8,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AuthenticationCodeScreen extends StatefulWidget {
   final String initialAuthCode;
   final int machineId;
+  final String officerId;
+  final String officerName;
 
   const AuthenticationCodeScreen({
     super.key,
     required this.initialAuthCode,
     this.machineId = 1,
+    this.officerId = 'unknown_officer',
+    this.officerName = 'Election Officer',
   });
 
   @override
@@ -28,52 +32,66 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
   final int _maxSeconds = 30;
   late AnimationController _animationController;
 
-  StreamSubscription<DocumentSnapshot>? _machineListener;
+  StreamSubscription<DocumentSnapshot>? _codeListener;
 
   @override
   void initState() {
     super.initState();
     authCode = widget.initialAuthCode;
-    _writeCodeToFirebase(authCode);
     _startTimer();
-    _listenToMachineDoc();
 
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 30),
     );
     _animationController.forward();
+
+    // Write initial code and start listening
+    _setupCode(authCode);
   }
 
   @override
   void dispose() {
     _timer.cancel();
-    _machineListener?.cancel();
+    _codeListener?.cancel();
+
+    // Clean up: delete the current auth code doc when officer leaves this screen
+    if (authCode.isNotEmpty) {
+      _deleteAuthCodeDoc(authCode);
+    }
+
     _animationController.dispose();
     super.dispose();
   }
 
-  /// Listens to the machine document in Firestore.
-  /// When the machine consumes the code (auth_code becomes null),
-  /// immediately generate a new code.
-  void _listenToMachineDoc() {
+  /// Creates the auth code doc and starts listening for consumption.
+  Future<void> _setupCode(String code) async {
+    await _writeCodeToFirebase(code);
+    _listenToAuthCodeDoc(code);
+  }
+
+  /// Listens to the specific auth code doc.
+  /// When the machine consumes it (status == 'used'), immediately regenerate.
+  void _listenToAuthCodeDoc(String code) {
     final docRef = FirebaseFirestore.instance
         .collection('system')
         .doc('registry')
         .collection('machines')
-        .doc(widget.machineId.toString());
+        .doc(widget.machineId.toString())
+        .collection('auth_codes')
+        .doc(code);
 
-    _machineListener = docRef.snapshots().listen((snapshot) {
-      if (!snapshot.exists) return;
+    _codeListener = docRef.snapshots().listen((snapshot) {
+      if (!mounted) return;
+      if (!snapshot.exists) return; // We deleted it ourselves, ignore
+
       final data = snapshot.data();
       if (data == null) return;
 
-      final currentCode = data['auth_code'] as String?;
-      // If the machine consumed the code, regenerate immediately
-      if (currentCode == null || currentCode.isEmpty) {
-        if (mounted) {
-          _generateNewCode();
-        }
+      final status = data['status'] as String?;
+      if (status == 'used') {
+        // Machine consumed this code, generate a fresh one immediately
+        _generateNewCode();
       }
     });
   }
@@ -84,44 +102,64 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
-        } else {
-          _generateNewCode();
         }
       });
+      if (_remainingSeconds == 0) {
+        _generateNewCode();
+      }
     });
   }
 
-  void _generateNewCode() {
-    final random = Random();
-    authCode = (100000 + random.nextInt(900000)).toString();
-    _remainingSeconds = _maxSeconds;
-    _animationController.reset();
-    _animationController.forward();
+  Future<void> _generateNewCode() async {
+    final oldCode = authCode;
 
-    _writeCodeToFirebase(authCode);
+    // Cancel old listener and delete old code doc
+    await _codeListener?.cancel();
+    if (oldCode.isNotEmpty) {
+      await _deleteAuthCodeDoc(oldCode);
+    }
+
+    // Generate new code
+    final random = Random();
+    final newCode = (100000 + random.nextInt(900000)).toString();
+
+    await _writeCodeToFirebase(newCode);
+
+    if (mounted) {
+      setState(() {
+        authCode = newCode;
+        _remainingSeconds = _maxSeconds;
+      });
+      _animationController.reset();
+      _animationController.forward();
+    }
+
+    _listenToAuthCodeDoc(newCode);
   }
 
-  /// Writes the current auth code to the machine document in Firestore.
-  /// Creates the document if it doesn't exist (merge: true).
+  /// Writes the auth code to a dedicated doc under the machine's auth_codes sub-collection.
+  /// Each officer gets their own independent doc — no overwriting, no clashes.
   Future<void> _writeCodeToFirebase(String code) async {
     try {
       final docRef = FirebaseFirestore.instance
           .collection('system')
           .doc('registry')
           .collection('machines')
-          .doc(widget.machineId.toString());
+          .doc(widget.machineId.toString())
+          .collection('auth_codes')
+          .doc(code);
 
       final expiry = DateTime.now().add(const Duration(seconds: 30));
 
       await docRef.set({
+        'code': code,
         'machine_id': widget.machineId,
-        'machine_name': 'Machine ${widget.machineId}',
-        'auth_code': code,
-        'auth_code_expires_at': Timestamp.fromDate(expiry),
+        'officer_id': widget.officerId,
+        'officer_name': widget.officerName,
+        'created_at': FieldValue.serverTimestamp(),
+        'expires_at': Timestamp.fromDate(expiry),
         'status': 'active',
-        'machine_logged_status': 'pending',
-        'last_heartbeat': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,6 +174,22 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
           ),
         );
       }
+    }
+  }
+
+  /// Deletes an auth code doc from the sub-collection.
+  Future<void> _deleteAuthCodeDoc(String code) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('system')
+          .doc('registry')
+          .collection('machines')
+          .doc(widget.machineId.toString())
+          .collection('auth_codes')
+          .doc(code)
+          .delete();
+    } catch (e) {
+      // Silently ignore — doc may already be consumed/deleted
     }
   }
 
@@ -214,6 +268,14 @@ class _AuthenticationCodeScreenState extends State<AuthenticationCodeScreen>
                     ),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    "Officer: ${widget.officerName}",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     "Enter this code to authenticate",
                     style: TextStyle(
