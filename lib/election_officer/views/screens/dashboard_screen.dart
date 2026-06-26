@@ -231,6 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => AuthenticationCodeScreen(
                                       initialAuthCode: authCode,
+                                      machineId: 1,
                                     ),
                                   ),
                                 );
