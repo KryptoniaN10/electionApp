@@ -230,166 +230,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.qr_code_scanner_rounded,
-                                  color: Colors.deepPurple,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Machine Authentication",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Text(
-                                      "Select a machine and generate a code",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: Colors.deepPurple,
+                              size: 28,
+                            ),
                           ),
-                          const SizedBox(height: 16),
-
-                          // Machine Selector Dropdown
-                          _machinesLoading
-                              ? Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade300),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Machine Authentication",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
                                   ),
-                                  child: const Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        "Loading machines...",
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
+                                ),
+                                Text(
+                                  "Generate code for voting machines",
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
                                   ),
-                                )
-                              : _machines.isEmpty
-                                  ? Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.shade50,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.orange.shade200),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.warning_amber_rounded,
-                                              color: Colors.orange.shade700, size: 18),
-                                          const SizedBox(width: 8),
-                                          const Expanded(
-                                            child: Text(
-                                              "No machines registered. Add machines to Firestore first.",
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade50,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.grey.shade300),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          isExpanded: true,
-                                          value: _selectedMachineId,
-                                          icon: Icon(Icons.arrow_drop_down, color: Colors.deepPurple),
-                                          borderRadius: BorderRadius.circular(12),
-                                          items: _machines.map((machine) {
-                                            final id = machine['id'] as String;
-                                            final name = machine['name'] as String;
-                                            final location = machine['location'] as String;
-                                            final status = machine['status'] as String;
-                                            final isOnline = status == 'active' || status == 'voting';
-                                            return DropdownMenuItem<String>(
-                                              value: id,
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    width: 8,
-                                                    height: 8,
-                                                    decoration: BoxDecoration(
-                                                      color: isOnline ? Colors.green : Colors.grey,
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                          name,
-                                                          style: const TextStyle(
-                                                            fontWeight: FontWeight.w600,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          "$location • ID: $id",
-                                                          style: TextStyle(
-                                                            color: Colors.grey.shade600,
-                                                            fontSize: 12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedMachineId = value;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                          const SizedBox(height: 12),
+                                ),
+                              ],
+                            ),
+                          ),
                           SizedBox(
                             width: double.infinity,
                             height: 44,
@@ -458,39 +335,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: Colors.black87,
                             ),
                           ),
+                          
                           const SizedBox(height: 12),
-                          TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: "Admission Number",
-                              hintStyle: TextStyle(color: Colors.grey.shade500),
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                color: Colors.grey.shade500,
-                                size: 20,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.deepPurple,
-                                  width: 2,
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: InputDecoration(
+                                    hintText: "Admission Number",
+                                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                                    prefixIcon: Icon(
+                                      Icons.search_rounded,
+                                      color: Colors.grey.shade500,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Colors.deepPurple,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+
+                              const SizedBox(width: 8),
+
+                              SizedBox(
+                                width: 52,
+                                height: 52,
+                                child: IconButton(
+                                  onPressed: () {
+                                    // TODO: Open QR Scanner
+                                  },
+                                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.deepPurple.withOpacity(0.1),
+                                    foregroundColor: Colors.deepPurple,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           SizedBox(

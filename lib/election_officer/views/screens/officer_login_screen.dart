@@ -1,7 +1,7 @@
 import 'package:electionapp/Admin/view/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
-import '../../../machine_view/screens/authenticator_screen.dart';
+import '../../../Machine/machine_view/screens/authenticator_screen.dart';
 
 class OfficerLoginScreen extends StatefulWidget {
   const OfficerLoginScreen({super.key});

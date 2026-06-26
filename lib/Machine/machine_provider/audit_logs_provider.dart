@@ -10,7 +10,7 @@ class AuditLogsProvider extends ChangeNotifier {
     loadLogs();
   }
 
-  final LocalBackupService _backup = LocalBackupService();
+  final LocalBackupService _backup = LocalBackupService.getInstance();
 
   List<AuditLog> _logs = <AuditLog>[];
   List<VoteBackup> _backups = <VoteBackup>[];
@@ -19,8 +19,9 @@ class AuditLogsProvider extends ChangeNotifier {
   List<VoteBackup> get backups => _backups;
 
   int get totalVotesCast => _backups.length;
-  int get restoredBackups =>
-      _backups.where((backup) => backup.recoveryStatus == BackupStatus.restored).length;
+  int get restoredBackups => _backups
+      .where((backup) => backup.recoveryStatus == BackupStatus.restored)
+      .length;
 
   Future<void> loadLogs() async {
     await Future<void>.delayed(const Duration(milliseconds: 220));

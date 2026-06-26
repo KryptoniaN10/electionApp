@@ -6,24 +6,26 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'election_officer/views/screens/officer_login_screen.dart';
 
-import 'machine_provider/audit_logs_provider.dart';
-import 'machine_provider/auth_provider.dart';
-import 'machine_provider/ballot_provider.dart';
-import 'machine_provider/dashboard_provider.dart';
-import 'machine_provider/election_init_provider.dart';
-import 'machine_provider/machine_settings_provider.dart';
+import 'Machine/machine_provider/audit_logs_provider.dart';
+import 'Machine/machine_provider/auth_provider.dart';
+import 'Machine/machine_provider/ballot_provider.dart';
+import 'Machine/machine_provider/dashboard_provider.dart';
+import 'Machine/machine_provider/election_init_provider.dart';
+import 'Machine/machine_provider/machine_settings_provider.dart';
 
-import 'machine_view/screens/audit_logs_screen.dart';
-import 'machine_view/screens/ballot_screen.dart';
-import 'machine_view/screens/dashboard_screen.dart';
-import 'machine_view/screens/election_init_screen.dart';
-import 'machine_view/screens/machine_settings_screen.dart';
-import 'machine_view/widgets/machine_ui.dart';
+import 'Machine/machine_view/screens/audit_logs_screen.dart';
+import 'Machine/machine_view/screens/ballot_screen.dart';
+import 'Machine/machine_view/screens/dashboard_screen.dart';
+import 'Machine/machine_view/screens/election_init_screen.dart';
+import 'Machine/machine_view/screens/machine_settings_screen.dart';
+import 'Machine/machine_view/widgets/machine_ui.dart';
+import 'Machine/services/local_backup_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await LocalBackupService.getInstance().init();
 
   runApp(const MyApp());
 }
