@@ -11,6 +11,9 @@ class ElectionInitScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 700;
+
     return Consumer<ElectionInitProvider>(
       builder: (context, provider, _) {
         final elections = provider.elections;
@@ -18,21 +21,28 @@ class ElectionInitScreen extends StatelessWidget {
         return MachineScaffold(
           title: 'Election Initialization',
           subtitle: 'Verify all election metadata and candidate registries before opening the booth.',
+          showSidebar: !isMobile, // Hide sidebar on mobile for more space
           child: provider.isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView(
-                  children: <Widget>[
-                    // Elections list
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 8 : 0,
+                    vertical: 8,
+                  ),
+                  children: [
+                    // Elections List
                     ...elections.map((election) {
                       final isOpen = election.status.name == 'open';
                       final candidates = MachineFakeData.candidatesForElection(election.electionId);
+
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.only(bottom: 16),
                         child: MachineCard(
                           tinted: isOpen,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
+                            children: [
+                              // Header Row
                               Row(
                                 children: [
                                   Expanded(
@@ -65,6 +75,8 @@ class ElectionInitScreen extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
+
+                              // Candidates
                               const Text(
                                 'Candidates',
                                 style: TextStyle(
@@ -74,6 +86,7 @@ class ElectionInitScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 12),
+
                               Wrap(
                                 spacing: 10,
                                 runSpacing: 10,
@@ -94,28 +107,34 @@ class ElectionInitScreen extends StatelessWidget {
                                           size: 32,
                                         ),
                                         const SizedBox(width: 10),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              candidate.fullName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                                color: MachineTheme.text,
+                                        Flexible(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                candidate.fullName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                  color: MachineTheme.text,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                            Text(
-                                              candidate.className ?? candidate.position ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: MachineTheme.muted,
+                                              Text(
+                                                candidate.className ?? candidate.position ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: MachineTheme.muted,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(width: 8),
                                         StatusPill(
                                           label: candidate.isVerified ? 'Verified' : 'Pending',
                                           color: candidate.isVerified
@@ -127,44 +146,72 @@ class ElectionInitScreen extends StatelessWidget {
                                   );
                                 }).toList(),
                               ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: InfoTile(
-                                      label: 'Election ID',
-                                      value: '${election.electionId}',
-                                      icon: Icons.tag_rounded,
+
+                              const SizedBox(height: 20),
+
+                              // Date & ID InfoTiles - Responsive
+                              isMobile
+                                  ? Column(
+                                      children: [
+                                        InfoTile(
+                                          label: 'Election ID',
+                                          value: '${election.electionId}',
+                                          icon: Icons.tag_rounded,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        InfoTile(
+                                          label: 'Start Time',
+                                          value: formatDateTime(election.startTime),
+                                          icon: Icons.schedule_rounded,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        InfoTile(
+                                          label: 'End Time',
+                                          value: formatDateTime(election.endTime),
+                                          icon: Icons.timer_rounded,
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          child: InfoTile(
+                                            label: 'Election ID',
+                                            value: '${election.electionId}',
+                                            icon: Icons.tag_rounded,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: InfoTile(
+                                            label: 'Start',
+                                            value: formatDateTime(election.startTime),
+                                            icon: Icons.schedule_rounded,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: InfoTile(
+                                            label: 'End',
+                                            value: formatDateTime(election.endTime),
+                                            icon: Icons.timer_rounded,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: InfoTile(
-                                      label: 'Start',
-                                      value: formatDateTime(election.startTime),
-                                      icon: Icons.schedule_rounded,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: InfoTile(
-                                      label: 'End',
-                                      value: formatDateTime(election.endTime),
-                                      icon: Icons.timer_rounded,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         ),
                       );
                     }).toList(),
-                    const SizedBox(height: 14),
+
+                    const SizedBox(height: 20),
+
+                    // Voter Class Filters
                     MachineCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
+                        children: [
                           const SectionTitle(
                             title: 'Voter Class Filters',
                             subtitle: 'Visibility of voter groups authorized on this booth tier.',
@@ -176,6 +223,7 @@ class ElectionInitScreen extends StatelessWidget {
                             children: provider.classes
                                 .map(
                                   (voterClass) => Container(
+                                    width: isMobile ? double.infinity : null,
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
                                       color: voterClass.isAuthorized
@@ -191,7 +239,7 @@ class ElectionInitScreen extends StatelessWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
-                                      children: <Widget>[
+                                      children: [
                                         Text(
                                           '${voterClass.name} ${voterClass.section}',
                                           style: const TextStyle(
@@ -213,7 +261,8 @@ class ElectionInitScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 80), // Space for FAB
+
+                    const SizedBox(height: 100), // Space for FAB if needed
                   ],
                 ),
         );

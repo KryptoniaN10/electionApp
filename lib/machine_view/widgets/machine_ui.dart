@@ -75,11 +75,14 @@ class MachineScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = darkModeProgress.clamp(0, 1).toDouble();
     final screenWidth = MediaQuery.of(context).size.width;
-    final isCompact = screenWidth < 900;
+    final isMobile = screenWidth < 900;
 
-    // Smoothly interpolate all colors based on progress
+    // Respect original showSidebar flag + mobile logic
+    final effectiveShowSidebar = showSidebar && !isMobile;
+
+    // Dark mode interpolation (kept for compatibility)
+    final progress = darkModeProgress.clamp(0.0, 1.0);
     final bgColor = Color.lerp(MachineTheme.background, MachineTheme.darkCanvas, progress)!;
     final contentColor = Color.lerp(MachineTheme.surface, MachineTheme.darkSurface, progress)!;
     final textColor = Color.lerp(MachineTheme.text, Colors.white, progress)!;
@@ -87,50 +90,91 @@ class MachineScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: bgColor,
+      drawer: isMobile ? const MachineDrawer() : null,
       floatingActionButton: floatingActionButton,
+      appBar: isMobile
+          ? AppBar(
+              backgroundColor: bgColor,
+              elevation: 0,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: subtitleColor,
+                    ),
+                  ),
+                ],
+              ),
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+              actions: actions,
+            )
+          : null,
       body: Row(
         children: [
-          if (showSidebar && !(progress > 0.3 && isCompact))
-            const MachineSidebar(),
+          if (effectiveShowSidebar) const MachineSidebar(),
           Expanded(
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
-                                letterSpacing: -0.3,
+                // Desktop Header
+                if (!isMobile)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor,
+                                  letterSpacing: -0.3,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: subtitleColor,
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: subtitleColor,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      ...?actions,
-                    ],
+                        ...?actions,
+                      ],
+                    ),
                   ),
-                ),
+
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    padding: EdgeInsets.fromLTRB(
+                      isMobile ? 16 : 24,
+                      isMobile ? 16 : 0,
+                      isMobile ? 16 : 24,
+                      16,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         color: contentColor,
@@ -163,7 +207,6 @@ class MachineScaffold extends StatelessWidget {
     );
   }
 }
-
 // ---------------------------------------------------------------------------
 // MachineSidebar — Left navigation rail with icon + label
 // ---------------------------------------------------------------------------
@@ -601,4 +644,102 @@ class _MachineTabDestination {
   final String route;
   final IconData icon;
   const _MachineTabDestination(this.label, this.route, this.icon);
+}
+// ---------------------------------------------------------------------------
+// MachineDrawer — Mobile navigation drawer
+// ---------------------------------------------------------------------------
+class MachineDrawer extends StatelessWidget {
+  const MachineDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final route = ModalRoute.of(context)?.settings.name ?? '/dashboard';
+
+    return Drawer(
+      backgroundColor: MachineTheme.sidebar,
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: MachineTheme.primary,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.how_to_vote,
+                    color: MachineTheme.primary,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'VoteMachine',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: ListView.builder(
+              itemCount: MachineSidebar._destinations.length,
+              itemBuilder: (context, index) {
+                final dest = MachineSidebar._destinations[index];
+                final selected = route == dest.route;
+
+                return ListTile(
+                  leading: Icon(
+                    dest.icon,
+                    color: selected ? MachineTheme.primary : Colors.white70,
+                    size: 24,
+                  ),
+                  title: Text(
+                    dest.label,
+                    style: TextStyle(
+                      color: selected ? Colors.white : Colors.white70,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                  selected: selected,
+                  selectedTileColor: MachineTheme.primary.withAlpha(30),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    if (!selected) {
+                      Navigator.pushReplacementNamed(context, dest.route);
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: MachineTheme.success, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'System Online',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

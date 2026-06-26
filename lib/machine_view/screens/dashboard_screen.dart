@@ -314,10 +314,10 @@ class DashboardScreen extends StatelessWidget {
                                         vertical: 16,
                                       ),
                                     ),
-                                    icon: const Icon(Icons.lock_open_rounded, size: 22),
+                                    icon: const Icon(Icons.lock, size: 22),
                                     label: Text(
                                       selectedCount > 0
-                                          ? 'Unlock Booth for $selectedCount Position${selectedCount > 1 ? 's' : ''}'
+                                          ? 'lock Booth for $selectedCount Position${selectedCount > 1 ? 's' : ''}'
                                           : 'Select at least 1 election',
                                     ),
                                   ),
